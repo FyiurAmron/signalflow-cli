@@ -18,9 +18,11 @@ from . import utils
 class EventsOutputDisplay(object):
     _DATE_FORMAT = '%Y-%m-%d %H:%M:%S %Z (%z)'
 
-    def __init__(self, computation, tz):
+    def __init__(self, computation, tz, start):
         self._computation = computation
         self._tz = tz
+        self._last_hour = start
+        self._last_day = -1
 
     def _render_date(self, date):
         return (date.astimezone(self._tz)
@@ -66,12 +68,25 @@ class EventsOutputDisplay(object):
                 elif isinstance(message, signalflow.messages.EventMessage):
                     self._render_event(message)
                 elif isinstance(message, signalflow.messages.DataMessage):
-                    utils.message('.')
+                    if not message.data.items():
+                        msg = red('X')
+                    else:
+                        ts = message.logical_timestamp_ms
+                        if ts > self._last_hour + 60 * 60 * 1000:
+                            self._last_hour = ts
+                            msg = white('-')
+                        else:
+                            msg = '.'
+                        if ts > self._last_day + 24 * 60 * 60 * 1000:
+                            self._last_day = ts
+                            date = tslib.date_from_utc_ts(ts)
+                            print(u'\n {date}'.format(date=white(self._render_date(date), bold=True)))
+                    utils.message(msg)
         except KeyboardInterrupt:
             pass
         finally:
             self._computation.close()
-
+            print('')
 
 def stream(flow, tz, program, start, stop, resolution, max_delay):
     """Execute a streaming SignalFlow computation and display the events.
@@ -100,6 +115,6 @@ def stream(flow, tz, program, start, stop, resolution, max_delay):
         return
 
     try:
-        EventsOutputDisplay(c, tz).stream()
+        EventsOutputDisplay(c, tz, start).stream()
     except Exception as e:
         print('Exception: {}'.format(e))
