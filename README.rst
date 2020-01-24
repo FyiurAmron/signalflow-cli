@@ -20,7 +20,7 @@ To install, along with the required dependencies, simply use ``pip``:
 
 .. code::
 
-    $ pip install git+https://github.com/signalfx/signalflow-cli
+    $ pip install git+https://github.com/FyiurAmron/signalflow-cli
 
 Demo
 ----
@@ -59,6 +59,7 @@ display as the interactive prompt. The available output modes are:
   the prompt around it. Computation parameters should be set via the
   appropriate command-line flags as necessary.
 
+- ``events``; shows the events in the given time period
 
 Finally, the graphing can also be used from the provided standalone utility
 ``csv-to-plot``, which reads CSV data from a file (or stdin) and renders the

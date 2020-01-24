@@ -22,7 +22,7 @@ from six.moves import input
 import sys
 import tslib
 
-from . import csvflow, graph, live, utils
+from . import csvflow, graph, live, events, utils
 from .tzaction import TimezoneAction
 from .version import version
 
@@ -236,7 +236,7 @@ def main():
     parser.add_argument('-d', '--max-delay', metavar='MAX-DELAY',
                         default=None,
                         help='maximum data wait (default: auto)')
-    parser.add_argument('--output', choices=['live', 'csv', 'graph'],
+    parser.add_argument('--output', choices=['live', 'csv', 'graph', 'events'],
                         default='live',
                         help='default output format')
     parser.add_argument('program', nargs='?', type=argparse.FileType('r'),
@@ -270,6 +270,8 @@ def main():
             params = process_params(**params)
             if options.output == 'live':
                 live.stream(flow, options.timezone, program, **params)
+            elif options.output == 'events':
+                events.stream(flow, options.timezone, program, **params)
             else:
                 data = csvflow.stream(flow, program, **params)
                 if options.output == 'csv':
