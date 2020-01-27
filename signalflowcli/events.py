@@ -88,6 +88,7 @@ class EventsOutputDisplay(object):
             self._computation.close()
             print('')
 
+
 def stream(flow, tz, program, start, stop, resolution, max_delay):
     """Execute a streaming SignalFlow computation and display the events.
 

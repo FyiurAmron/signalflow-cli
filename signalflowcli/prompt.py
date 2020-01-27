@@ -9,7 +9,6 @@ An interactive command-line prompt for running real-time streaming SignalFx
 SignalFlow Analytics.
 """
 
-from ansicolor import red, white
 import argparse
 import getpass
 import os
@@ -18,13 +17,19 @@ import prompt_toolkit
 import pygments_signalflow
 import requests
 import signalfx
-from six.moves import input
+import signalfx.signalflow.sse
+import signalfx.signalflow.ws
 import sys
 import tslib
 
-from . import csvflow, graph, live, events, utils
+from ansicolor import red, white
+from six.moves import input
+
 from .tzaction import TimezoneAction
 from .version import version
+
+from . import csvflow, graph, live, events, raw
+from . import utils
 
 # Default search location for a SignalFx session token file.
 # Used if no token was provided with the --token option.
@@ -32,32 +37,45 @@ _DEFAULT_TOKEN_FILE = '~/.sftoken'
 
 
 class OptionCompleter(prompt_toolkit.completion.Completer):
-
     OPTS = ['start', 'stop', 'resolution', 'max_delay', 'output']
 
     def get_completions(self, document, complete_event):
         for opt in self.OPTS:
             if opt.startswith(document.text_before_cursor):
                 yield prompt_toolkit.completion.Completion(
-                        opt, start_position=-document.cursor_position)
+                    opt, start_position=-document.cursor_position)
+
+
+class WebSocketTransportX(signalfx.signalflow.ws.WebSocketTransport):
+    def __init__(self, token, endpoint=signalfx.constants.DEFAULT_STREAM_ENDPOINT,
+                 timeout=signalfx.constants.DEFAULT_TIMEOUT, compress=True,
+                 proxy_url=None):
+        super().__init__(token, endpoint,
+                       timeout, compress, proxy_url)
+        self.dump_raw_message = False
+
+    def _process_message(self, message):
+        if self.dump_raw_message:
+            utils.message(message)
+            utils.message(',\n')
+        super()._process_message(message)
 
 
 class PromptCompleter(prompt_toolkit.completion.Completer):
-
     fs_completer = prompt_toolkit.completion.filesystem.PathCompleter()
     opt_completer = OptionCompleter()
 
     def _offset(self, document, offset=1):
         return prompt_toolkit.document.Document(
-                document.text[offset:], document.cursor_position - offset)
+            document.text[offset:], document.cursor_position - offset)
 
     def get_completions(self, document, complete_event):
         if document.text.startswith('!'):
             return self.fs_completer.get_completions(
-                    self._offset(document), complete_event)
+                self._offset(document), complete_event)
         elif document.text.startswith('.'):
             return self.opt_completer.get_completions(
-                    self._offset(document), complete_event)
+                self._offset(document), complete_event)
         return []
 
 
@@ -146,7 +164,7 @@ def prompt(flow, tz, params):
         params[param] = value
 
     history = prompt_toolkit.history.FileHistory(
-            os.path.expanduser('~/.signalflow.history'))
+        os.path.expanduser('~/.signalflow.history'))
     prompt = prompt_toolkit.shortcuts.PromptSession(history=history)
 
     while True:
@@ -213,7 +231,7 @@ def prompt(flow, tz, params):
 def main():
     parser = argparse.ArgumentParser(description=(
         'SignalFlow Analytics interactive command-line client (v{})'
-        .format(version)))
+            .format(version)))
     parser.add_argument('-t', '--token', metavar='TOKEN',
                         help='session token')
     parser.add_argument('-x', '--execute', action='store_true',
@@ -236,7 +254,7 @@ def main():
     parser.add_argument('-d', '--max-delay', metavar='MAX-DELAY',
                         default=None,
                         help='maximum data wait (default: auto)')
-    parser.add_argument('--output', choices=['live', 'csv', 'graph', 'events'],
+    parser.add_argument('--output', choices=['live', 'csv', 'graph', 'events', 'raw'],
                         default='live',
                         help='default output format')
     parser.add_argument('program', nargs='?', type=argparse.FileType('r'),
@@ -259,9 +277,16 @@ def main():
         sys.stderr.write('No authentication token found.\n')
         return 1
 
-    flow = signalfx.SignalFx(
-        api_endpoint=options.api_endpoint,
-        stream_endpoint=options.stream_endpoint).signalflow(token)
+    # flow = signalfx.SignalFx(
+    #     api_endpoint=options.api_endpoint,
+    #     stream_endpoint=options.stream_endpoint).signalflow(token)
+
+    flow = signalfx.signalflow.SignalFlowClient(
+        token,
+        options.stream_endpoint,
+        signalfx.constants.DEFAULT_TIMEOUT,
+        WebSocketTransportX)
+
     try:
         if sys.stdin.isatty() and not options.execute:
             prompt(flow, options.timezone, params)
@@ -272,6 +297,9 @@ def main():
                 live.stream(flow, options.timezone, program, **params)
             elif options.output == 'events':
                 events.stream(flow, options.timezone, program, **params)
+            elif options.output == 'raw':
+                flow._transport.dump_raw_message = True
+                raw.stream(flow, options.timezone, program, **params)
             else:
                 data = csvflow.stream(flow, program, **params)
                 if options.output == 'csv':
