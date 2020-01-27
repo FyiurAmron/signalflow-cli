@@ -1,0 +1,17 @@
+#!signalflow -x
+CURRENT = data('jira.nginx.response.status.count', filter=filter('status_code', '2xx') and filter('environment_type', 'prod') and filter('micros_group', 'WebServer'), rollup='sum')\
+.sum(by='environment').mean(over='5m').publish(label='2xx')
+CURRENT_SHITFTED_1 = CURRENT.timeshift('10m')
+CURRENT_SHITFTED_2 = CURRENT.timeshift('15m')
+CURRENT_SHITFTED_3 = CURRENT.timeshift('20m')
+CURRENT_BASE = median(CURRENT_SHITFTED_1, CURRENT_SHITFTED_2, CURRENT_SHITFTED_3)
+CURRENT_DIFF_PERCENT = ((CURRENT-CURRENT_BASE)/CURRENT_BASE*100).publish('Current diff percent')
+HIST_1W = (CURRENT).timeshift('1w')
+HIST_2W = (CURRENT).timeshift('2w')
+HIST_3W = (CURRENT).timeshift('3w')
+HIST_BASE = median(HIST_1W, HIST_2W, HIST_3W)
+HIST_DIFF_PERCENT = ((CURRENT-HIST_BASE)/HIST_BASE*100).publish(label='Historical diff percent')
+LOW_TRAFFIC_THRESHOLD = (HIST_BASE).percentile(pct=20, over='24h').scale(1.2).publish(label='Lower 20% of traffic')
+# Trigger if traffic changed more than -20% compared to both current and historical data.
+# Also trigger only when the traffic rate is above idle (LOW_TRAFFIC_THRESHOLD). For low traffic even small changes are relatively big (percentage-wise).
+detect(when(CURRENT_DIFF_PERCENT < -20 and HIST_DIFF_PERCENT < -20, '3m') and when(CURRENT > LOW_TRAFFIC_THRESHOLD, '30m', .5)).publish('2xx Traffic suddenly dropped')

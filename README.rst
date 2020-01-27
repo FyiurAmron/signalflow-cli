@@ -9,18 +9,17 @@ For more information on the SignalFlow analytics language, visit the SignalFx
 Developers documentation at
 https://developers.signalfx.com/signalflow_analytics/signalflow_overview.html.
 
-Note: The ``signalflow`` CLI is not an officially supported tool. It is
-intended to be an example of how to use the SignalFlow analytics language part
-of the ``signalfx-python`` library.
+Note: this is a fork of https://github.com/signalfx/signalflow-cli - providing
+an extended historical events monitoring as a way to try out alert algos.
 
 Installation
 ------------
 
-To install, along with the required dependencies, simply use ``pip``:
+To install, along with the required dependencies, clone and simply use ``pip``:
 
 .. code::
 
-    $ pip install git+https://github.com/FyiurAmron/signalflow-cli
+    $ pip install .
 
 Demo
 ----
