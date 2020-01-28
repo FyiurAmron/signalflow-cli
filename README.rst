@@ -60,6 +60,8 @@ display as the interactive prompt. The available output modes are:
 
 - ``events``; shows the events in the given time period
 
+- ``raw``; displays the raw JSON packets as received from Stream API
+
 Finally, the graphing can also be used from the provided standalone utility
 ``csv-to-plot``, which reads CSV data from a file (or stdin) and renders the
 graph. Using ``--output graph`` is the same as piping the output of ``--output
@@ -69,6 +71,8 @@ csv`` into ``csv-to-plot``:
 
     $ signalflow --start=-15m --stop=-1m --output=graph < program.txt
     $ signalflow --start=-15m --stop=-1m --output=csv < program.txt | csv-to-plot
+
+Use ``--help`` to get full list of available switches at the run time.
 
 Interactive mode usage
 ^^^^^^^^^^^^^^^^^^^^^^
