@@ -1,5 +1,5 @@
-SignalFx SignalFlow™ Analytics interactive command-line
-=======================================================
+SignalFx SignalFlow™ Analytics interactive command-line tool
+============================================================
 
 ``signalflow`` is a command-line client for SignalFx SignalFlow Analytics. It
 allows for executing, controlling and streaming live output from SignalFlow
