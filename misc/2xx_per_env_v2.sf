@@ -1,0 +1,39 @@
+#!signalflow -x
+RAW = data(
+    'jira.nginx.response.status.count',
+    filter=filter('status_code', '2xx')
+    and filter('environment_type', 'prod')
+    # and filter('environment', 'prod-ap')
+    # and filter('micros_service_id', 'jira-prod-ap-4')
+    and filter('micros_group', 'WebServer'),
+    rollup='sum')\
+.sum(by='environment')
+
+MEAN_FAST = RAW.mean(over='3m')
+MEAN_SLOW = RAW.mean(over='30m')
+
+DIFF_RATIO = MEAN_FAST/MEAN_SLOW
+#min is absurd, mean/median give less representative results than max
+HIST_MAX_MEAN_SLOW = max(
+    MEAN_SLOW.timeshift('1w'),
+    MEAN_SLOW.timeshift('2w'),
+    MEAN_SLOW.timeshift('4w'),
+    MEAN_SLOW.timeshift('8w'))
+HIST_MAX_DIFF_RATIO = MEAN_FAST/HIST_MAX_MEAN_SLOW
+
+#RAW.publish('raw response count')
+DIFF_RATIO.publish('current fast mean/slow mean (ratio)')
+HIST_MAX_DIFF_RATIO.publish('current/historical max (ratio)')
+
+#TRIG_DIFF_RATIO = DIFF_RATIO < 0.75
+#TRIG_HIST_DIFF_RATIO = HIST_MAX_DIFF_RATIO < 0.75
+TRIGGER = DIFF_RATIO < 0.8 and HIST_MAX_DIFF_RATIO < 0.75
+
+#TRIG_DIFF_RATIO.publish('TRIG fast/slow ratio')
+#TRIG_HIST_DIFF_RATIO.publish('TRIG cur/hist max ratio')
+TRIGGER.publish('TRIG')
+
+detect(
+    when(TRIGGER,'1m'),
+    when(HIST_MAX_DIFF_RATIO > 0.85,'5m'))\
+.publish('2xx response count suspiciously low')

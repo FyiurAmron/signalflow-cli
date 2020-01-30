@@ -1,5 +1,5 @@
-SignalFx SignalFlow™ Analytics interactive command-line
-=======================================================
+SignalFx SignalFlow™ Analytics interactive command-line tool
+============================================================
 
 ``signalflow`` is a command-line client for SignalFx SignalFlow Analytics. It
 allows for executing, controlling and streaming live output from SignalFlow
@@ -9,18 +9,17 @@ For more information on the SignalFlow analytics language, visit the SignalFx
 Developers documentation at
 https://developers.signalfx.com/signalflow_analytics/signalflow_overview.html.
 
-Note: The ``signalflow`` CLI is not an officially supported tool. It is
-intended to be an example of how to use the SignalFlow analytics language part
-of the ``signalfx-python`` library.
+Note: this is a fork of https://github.com/signalfx/signalflow-cli - providing
+an extended historical events monitoring as a way to try out alert algos.
 
 Installation
 ------------
 
-To install, along with the required dependencies, simply use ``pip``:
+To install, along with the required dependencies, clone and simply use ``pip``:
 
 .. code::
 
-    $ pip install git+https://github.com/signalfx/signalflow-cli
+    $ pip install .
 
 Demo
 ----
@@ -59,6 +58,9 @@ display as the interactive prompt. The available output modes are:
   the prompt around it. Computation parameters should be set via the
   appropriate command-line flags as necessary.
 
+- ``events``; shows the events in the given time period
+
+- ``raw``; displays the raw JSON packets as received from Stream API
 
 Finally, the graphing can also be used from the provided standalone utility
 ``csv-to-plot``, which reads CSV data from a file (or stdin) and renders the
@@ -69,6 +71,8 @@ csv`` into ``csv-to-plot``:
 
     $ signalflow --start=-15m --stop=-1m --output=graph < program.txt
     $ signalflow --start=-15m --stop=-1m --output=csv < program.txt | csv-to-plot
+
+Use ``--help`` to get full list of available switches at the run time.
 
 Interactive mode usage
 ^^^^^^^^^^^^^^^^^^^^^^
